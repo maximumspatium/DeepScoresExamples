@@ -3,7 +3,9 @@
 
 import argparse
 import sys
+from time import sleep
 
+import numpy as np
 import tensorflow as tf
 import Classification_BatchDataset
 import TensorflowUtils as utils
@@ -98,23 +100,34 @@ def main(unused_argv):
         correct_prediction = tf.cast(correct_prediction, tf.float32)
     accuracy = tf.reduce_mean(correct_prediction)
 
+    trainable_params = tf.reduce_sum([tf.reduce_prod(v.shape) for v in tf.trainable_variables()])
+
     # Add ops to save and restore all the variables.
     saver = tf.train.Saver()
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
+        print("Total number of trainable params: %d\n" % (sess.run(trainable_params)))
         print("Training the network with %d training steps..." % FLAGS.num_steps)
 
         for i in range(FLAGS.num_steps):
-            batch = data_reader.next_batch(FLAGS.batch_size)
-            if i % 1000 == 0:
+            if i % 100 == 0 and i != 0:
                 train_accuracy = accuracy.eval(feed_dict={
                     x: batch[0], y_: batch[1], keep_prob: 1.0})
                 print('step %d, training accuracy %g' % (i, train_accuracy))
-            if i % 100 == 0:
+
+            if i % 100 == 0 and i != 0:
                 _, cross_ent = sess.run([train_step, cross_entropy],feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.8})
-                print(cross_ent)
+                print('Step %d, Cross_entropy %g' % (i, cross_ent))
+
+            if i % 10 == 0 and i != 0:
+                print("Waiting for 5 minutes")
+                sleep(5*60)
+
+            print('Step: %s' % i)
+            batch = data_reader.next_batch(FLAGS.batch_size)
+
             train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.8})
 
         # import PIL
